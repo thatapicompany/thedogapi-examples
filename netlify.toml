@@ -1,0 +1,43 @@
+# Netlify Configuration for The Dog API Examples
+
+[build]
+  # Since this is a static site with no build step, we don't need a build command
+  publish = "."
+  
+[build.environment]
+  # No build environment needed for static HTML
+
+# Custom headers for security and embedding
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Allow embedding in iframes from any domain
+    X-Frame-Options = "ALLOWALL"
+    # Content Security Policy - allow embedding
+    Content-Security-Policy = "frame-ancestors *"
+    # CORS headers to allow API calls from embedded contexts
+    Access-Control-Allow-Origin = "*"
+    # Security headers
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+# Redirects for cleaner URLs (optional)
+[[redirects]]
+  from = "/image-upload"
+  to = "/image-upload/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/image-upload-sync"
+  to = "/image-upload-sync/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/breed-search"
+  to = "/breed-search/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/voting"
+  to = "/voting/index.html"
+  status = 200
