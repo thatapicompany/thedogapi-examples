@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dog API - Breed Search</title>
+    <style>
+        :root {
+            --primary-color: #f15a29;
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --secondary-bg: #2d2d2d;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            /* Wider for search results */
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .breed-card {
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .breed-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .breed-img-container {
+            width: 100%;
+            height: 200px;
+            background-color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .breed-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .breed-details {
+            padding: 15px;
+        }
+
+        .breed-name {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .breed-stat {
+            font-size: 0.9em;
+            color: #ddd;
+            margin-bottom: 3px;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Dog Breed Search</h1>
+
+        <div class="search-box">
+            <div class="form-group">
+                <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="API Key (Optional)">
+            </div>
+            <div class="form-group" style="flex: 2;">
+                <input type="text" id="search-input" placeholder="Search breeds (e.g., 'Golden', 'Terrier')...">
+            </div>
+            <button id="search-btn">Search</button>
+        </div>
+
+        <div id="results-grid"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.thedogapi.com/v1';
+        const searchInput = document.getElementById('search-input');
+        const apiKeyInput = document.getElementById('api-key');
+        const searchBtn = document.getElementById('search-btn');
+        const resultsGrid = document.getElementById('results-grid');
+
+        // Allow 'Enter' key to trigger search
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchBtn.click();
+        });
+
+        searchBtn.addEventListener('click', async () => {
+            const query = searchInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+
+            if (!query) {
+                alert('Please enter a search term');
+                return;
+            }
+
+            resultsGrid.innerHTML = '<div class="no-results">Searching...</div>';
+
+            try {
+                // Search for breeds
+                const response = await fetch(`${API_URL}/breeds/search?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'x-api-key': apiKey
+                    }
+                });
+
+                if (!response.ok) throw new Error('Search failed');
+
+                const breeds = await response.json();
+
+                if (breeds.length === 0) {
+                    resultsGrid.innerHTML = '<div class="no-results">No breeds found matching your search.</div>';
+                    return;
+                }
+
+                resultsGrid.innerHTML = ''; // Clear loading/previous
+
+                // For each breed, render a card. 
+                // Note: The search endpoint returns breed info, it might contain reference_image_id.
+                // It does NOT always contain the full image object URL. We might need to construct it or fetch it?
+                // Actually `reference_image_id` is usually enough to get the image: https://cdn2.thedogapi.com/images/${id}.jpg`
+                // BUT extensions vary (.jpg, .png).
+                // Safest is to use the image object if provided, OR just try .jpg and hope, OR separate call.
+                // Let's see what the API returns usually. Usually just reference_image_id.
+                // Optimization: The CDN is usually https://cdn2.thedogapi.com/images/{reference_image_id}.jpg 
+                // (Most are JPG, but not all. If we want to be perfect, we'd GET /images/:id for each... but that's n+1 requests).
+                // Let's try to just render the card without image first, or try to load the image.
+
+                // Wait, some breeds might not have an image reference.
+
+                breeds.forEach(breed => {
+                    const card = document.createElement('div');
+                    card.className = 'breed-card';
+
+                    let imageHtml = '';
+                    if (breed.reference_image_id) {
+                        // Attempt to deduce URL or use a placeholder that errors gracefully?
+                        // Actually, standard is using the CDN directly is risky on extensions.
+                        // However, for this demo we can try `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`
+                        // and add onerror handler.
+                        const imageUrl = `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`;
+                        imageHtml = `
+                            <div class="breed-img-container">
+                                <img class="breed-img" src="${imageUrl}" alt="${breed.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+                            </div>
+                        `;
+                    } else {
+                        imageHtml = `
+                             <div class="breed-img-container" style="display:flex;align-items:center;justify-content:center;color:#555;">
+                                No Image
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        ${imageHtml}
+                        <div class="breed-details">
+                            <div class="breed-name">${breed.name}</div>
+                            <div class="breed-stat"><strong>Bred for:</strong> ${breed.bred_for || 'Unknown'}</div>
+                            <div class="breed-stat"><strong>Life Span:</strong> ${breed.life_span}</div>
+                            <div class="breed-stat"><strong>Temperament:</strong> <br>${(breed.temperament || 'N/A').split(', ').slice(0, 3).join(', ')}${breed.temperament && breed.temperament.split(',').length > 3 ? '...' : ''}</div>
+                        </div>
+                    `;
+                    resultsGrid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error(error);
+                resultsGrid.innerHTML = `<div class="no-results" style="color: #ff6b6b;">Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+
+</html>

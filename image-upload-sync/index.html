@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dog API - Sync Image Upload</title>
+    <style>
+        :root {
+            --primary-color: #f15a29;
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --secondary-bg: #2d2d2d;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--secondary-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #status-message {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #000;
+            border-radius: var(--border-radius);
+            text-align: center;
+            display: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #result-area {
+            margin-top: 25px;
+            text-align: center;
+            display: none;
+        }
+
+        #uploaded-image {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .breed-info {
+            background-color: #333;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: left;
+        }
+
+        .breed-title {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .json-dump {
+            margin-top: 20px;
+            background-color: #111;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #888;
+            text-align: left;
+            overflow-x: auto;
+            max-height: 200px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Magic Breed Identifier</h1>
+        <p class="subtitle">Upload & Identify in one step (Sync)</p>
+
+        <div class="form-group">
+            <label for="api-key">API Key</label>
+            <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="Enter your API Key">
+        </div>
+
+        <div class="form-group">
+            <label for="file-input">Select Image</label>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <button id="upload-btn">Upload & Analyze</button>
+
+        <div id="status-message"></div>
+
+        <div id="result-area">
+            <img id="uploaded-image" src="" alt="Uploaded Dog">
+            <div id="breed-data" class="breed-info"></div>
+            <details>
+                <summary style="cursor: pointer; color: #888; margin-top: 10px;">View Raw JSON</summary>
+                <div id="json-result" class="json-dump"></div>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.thedogapi.com/v1';
+        const statusMessage = document.getElementById('status-message');
+        const resultArea = document.getElementById('result-area');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const apiKeyInput = document.getElementById('api-key');
+        const uploadedImage = document.getElementById('uploaded-image');
+        const breedData = document.getElementById('breed-data');
+        const jsonResult = document.getElementById('json-result');
+
+        function showStatus(msg, isLoading = false) {
+            statusMessage.style.display = 'block';
+            statusMessage.innerHTML = isLoading ? `<div class="spinner"></div> ${msg}` : msg;
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            const apiKey = apiKeyInput.value.trim();
+
+            if (!file) {
+                alert('Please select a file first.');
+                return;
+            }
+            if (!apiKey) {
+                alert('Please enter an API Key.');
+                return;
+            }
+
+            // Reset UI
+            statusMessage.style.display = 'none';
+            resultArea.style.display = 'none';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            // formData.append('sub_id', 'demo-sync'); // Optional
+
+            showStatus('Uploading and Analyzing... (30-60s)', true);
+
+            try {
+                // Use the synchronous upload endpoint
+                const response = await fetch(`${API_URL}/images/upload-sync`, {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': apiKey
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Upload failed (${response.status}): ${errText}`);
+                }
+
+                const data = await response.json();
+
+                // Success!
+                statusMessage.style.display = 'none';
+                resultArea.style.display = 'block';
+                uploadedImage.src = data.url;
+                jsonResult.textContent = JSON.stringify(data, null, 2);
+
+                if (data.breeds && data.breeds.length > 0) {
+                    const breed = data.breeds[0];
+
+                    // Build display parts conditionally based on available data
+                    let displayParts = [`<div class="breed-title">🐶 ${breed.name}</div>`];
+
+                    if (breed.temperament) {
+                        displayParts.push(`<div><strong>Temperament:</strong> ${breed.temperament}</div>`);
+                    }
+
+                    if (breed.life_span) {
+                        displayParts.push(`<div><strong>Life Span:</strong> ${breed.life_span}</div>`);
+                    }
+
+                    if (breed.weight && breed.weight.metric) {
+                        displayParts.push(`<div><strong>Weight:</strong> ${breed.weight.metric} kg</div>`);
+                    }
+
+                    if (breed.origin) {
+                        displayParts.push(`<div><strong>Origin:</strong> ${breed.origin}</div>`);
+                    }
+
+                    displayParts.push(`<div style="margin-top:10px; font-size:0.9em; color:#aaa;">Confidence: Very High (Sync)</div>`);
+
+                    breedData.innerHTML = displayParts.join('');
+                } else {
+                    breedData.innerHTML = `
+                         <div class="breed-title">Analysis Complete</div>
+                        <div>No specific breed identified from our database.</div>
+                        <div style="font-size:0.9em; color:#aaa;">The image was processed successfully.</div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error(error);
+                showStatus(`Error: ${error.message}`, false);
+                statusMessage.style.backgroundColor = '#330000';
+                statusMessage.style.color = '#ff6b6b';
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

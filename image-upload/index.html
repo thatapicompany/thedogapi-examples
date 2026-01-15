@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dog API - Image Upload Example</title>
+    <!-- Use a simple CSS framework for better aesthetics, or custom CSS -->
+    <style>
+        :root {
+            --primary-color: #f15a29;
+            /* The Dog API Orange */
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --secondary-bg: #2d2d2d;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--secondary-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #status-log {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #000;
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+            font-size: 14px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+        }
+
+        #result-area {
+            margin-top: 25px;
+            text-align: center;
+            display: none;
+        }
+
+        #uploaded-image {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .breed-info {
+            background-color: #333;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: left;
+        }
+
+        .breed-title {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Dog Breed Identifier</h1>
+        <p style="text-align: center; color: #aaa; margin-bottom: 25px;">Upload a dog image to identify its breed</p>
+
+        <div class="form-group">
+            <label for="api-key">API Key</label>
+            <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="Enter your API Key">
+            <small style="color: #888; display: block; margin-top: 5px;">Get one for free at <a
+                    href="https://thedogapi.com" target="_blank"
+                    style="color: var(--primary-color);">thedogapi.com</a></small>
+        </div>
+
+        <div class="form-group">
+            <label for="file-input">Select Image</label>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <button id="upload-btn">Upload & Identify</button>
+
+        <div id="status-log"></div>
+
+        <div id="result-area">
+            <img id="uploaded-image" src="" alt="Uploaded Dog">
+            <div id="breed-data" class="breed-info"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.thedogapi.com/v1';
+        const statusLog = document.getElementById('status-log');
+        const resultArea = document.getElementById('result-area');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const apiKeyInput = document.getElementById('api-key');
+        const uploadedImage = document.getElementById('uploaded-image');
+        const breedData = document.getElementById('breed-data');
+
+        function addLog(message) {
+            statusLog.style.display = 'block';
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            statusLog.appendChild(entry);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        async function pollStatus(statusUrl, apiKey) {
+            addLog(`Polling status from: ${statusUrl}`);
+
+            // Poll for up to 4 minutes (48 intervals of 5s)
+            const maxAttempts = 50;
+            let attempts = 0;
+
+            const interval = setInterval(async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(interval);
+                    addLog('Error: Polling timed out (4 mins).');
+                    uploadBtn.disabled = false;
+                    return;
+                }
+
+                try {
+                    const response = await fetch(statusUrl, {
+                        headers: { 'x-api-key': apiKey }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Status check failed: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addLog(`Current status: ${data.status} (attempt ${attempts}/${maxAttempts})`);
+
+                    // Status flow: 'to_be_reviewed' -> 'clean' -> 'labelled'
+                    // Continue polling until we get 'labelled' status
+                    if (data.status === 'to_be_reviewed' || data.status === 'clean') {
+                        return; // Continue polling
+                    }
+
+                    clearInterval(interval); // Stop polling
+
+                    if (data.status === 'labelled') {
+                        addLog('Image analysis complete with breed identification.');
+                        fetchImageDetails(data.id, apiKey);
+                    } else {
+                        addLog(`Image rejected: Status is ${data.status}`);
+                        uploadBtn.disabled = false;
+                        alert(`Image processing finished with status: ${data.status}`);
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    addLog(`Polling error: ${error.message}`);
+                    clearInterval(interval);
+                    uploadBtn.disabled = false;
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+
+        async function fetchImageDetails(imageId, apiKey) {
+            addLog(`Fetching details for image ID: ${imageId}`);
+            try {
+                const response = await fetch(`${API_URL}/images/${imageId}`, {
+                    headers: { 'x-api-key': apiKey }
+                });
+                const data = await response.json();
+
+                // Display logic
+                resultArea.style.display = 'block';
+                uploadedImage.src = data.url;
+
+                if (data.breeds && data.breeds.length > 0) {
+                    const breed = data.breeds[0];
+
+                    // Build display parts conditionally based on available data
+                    let displayParts = [`<div class="breed-title">🐶 ${breed.name}</div>`];
+
+                    if (breed.temperament) {
+                        displayParts.push(`<div><strong>Temperament:</strong> ${breed.temperament}</div>`);
+                    }
+
+                    if (breed.life_span) {
+                        displayParts.push(`<div><strong>Life Span:</strong> ${breed.life_span}</div>`);
+                    }
+
+                    if (breed.weight && breed.weight.metric) {
+                        displayParts.push(`<div><strong>Weight:</strong> ${breed.weight.metric} kg</div>`);
+                    }
+
+                    if (breed.origin) {
+                        displayParts.push(`<div><strong>Origin:</strong> ${breed.origin}</div>`);
+                    }
+
+                    breedData.innerHTML = displayParts.join('');
+                    addLog(`Success! Identified as ${breed.name}`);
+                } else {
+                    breedData.innerHTML = `
+                        <div class="breed-title">I'm not sure what breed that is 🤔</div>
+                        <div>But it looks like a good dog!</div>
+                    `;
+                    addLog('Analysis finished, but no specific breed identified.');
+                }
+            } catch (error) {
+                addLog(`Error fetching details: ${error.message}`);
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            const apiKey = apiKeyInput.value.trim();
+
+            if (!file) {
+                alert('Please select a file first.');
+                return;
+            }
+            if (!apiKey) {
+                alert('Please enter an API Key.');
+                return;
+            }
+
+            // Reset UI
+            statusLog.innerHTML = '';
+            resultArea.style.display = 'none';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            // Default sub_id to track user session if needed, optional
+            formData.append('sub_id', 'example-demo');
+
+            addLog('Starting upload...');
+
+            try {
+                const response = await fetch(`${API_URL}/images/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': apiKey
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Upload failed (${response.status}): ${errText}`);
+                }
+
+                const data = await response.json();
+                addLog('Upload successful!');
+
+                // Inspect response for status link
+                if (data.links && data.links.status) {
+                    let statusUrl;
+
+                    // Check if the status link is already an absolute URL
+                    if (data.links.status.startsWith('http')) {
+                        statusUrl = data.links.status;
+                    } else {
+                        // It's a relative path, prepend API_URL
+                        let cleanLink = data.links.status;
+                        if (cleanLink.startsWith('/')) {
+                            cleanLink = cleanLink.substring(1);
+                        }
+                        statusUrl = `${API_URL}/${cleanLink}`;
+                    }
+
+                    pollStatus(statusUrl, apiKey);
+                } else {
+                    // Fallback if no status link, just show ID
+                    addLog('No status link provided. Asking for image details directly...');
+                    fetchImageDetails(data.id, apiKey);
+                }
+
+            } catch (error) {
+                addLog(`Error: ${error.message}`);
+                console.error(error);
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
