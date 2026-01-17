@@ -233,7 +233,7 @@
                     card.innerHTML = `
                         ${imageHtml}
                         <div class="breed-details">
-                            <div class="breed-name">${breed.name}</div>
+                            <div class="breed-name">${breed.id}: ${breed.name}</div>
                             <div class="breed-stat"><strong>Bred for:</strong> ${breed.bred_for || 'Unknown'}</div>
                             <div class="breed-stat"><strong>Life Span:</strong> ${breed.life_span}</div>
                             <div class="breed-stat"><strong>Temperament:</strong> <br>${(breed.temperament || 'N/A').split(', ').slice(0, 3).join(', ')}${breed.temperament && breed.temperament.split(',').length > 3 ? '...' : ''}</div>
