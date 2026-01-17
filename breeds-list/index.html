@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dog API - All Breeds</title>
+    <style>
+        :root {
+            --primary-color: #f15a29;
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --secondary-bg: #2d2d2d;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+
+        .controls {
+            background-color: var(--secondary-bg);
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .api-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .api-input label {
+            white-space: nowrap;
+            color: #aaa;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 10px 18px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            opacity: 0.85;
+        }
+
+        .pagination button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .page-info {
+            color: #aaa;
+            font-size: 0.9em;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        #results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .breed-card {
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .breed-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .breed-img-container {
+            width: 100%;
+            height: 180px;
+            background-color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .breed-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .breed-details {
+            padding: 15px;
+        }
+
+        .breed-name {
+            color: var(--primary-color);
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .breed-stat {
+            font-size: 0.85em;
+            color: #ccc;
+            margin-bottom: 3px;
+        }
+
+        .breed-stat strong {
+            color: #ddd;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            color: #888;
+        }
+
+        .total-count {
+            text-align: center;
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>All Dog Breeds</h1>
+        <p class="subtitle">GET https://api.thedogapi.com/v1/breeds</p>
+
+        <div class="controls">
+            <div class="api-input">
+                <label for="api-key">API Key:</label>
+                <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="Your API Key (optional)">
+            </div>
+            <div class="pagination">
+                <button id="prev-btn" disabled>← Previous</button>
+                <span class="page-info" id="page-info">Page 1</span>
+                <button id="next-btn">Next →</button>
+            </div>
+        </div>
+
+        <div id="results-grid"></div>
+        <div class="total-count" id="total-count"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.thedogapi.com/v1';
+        const apiKeyInput = document.getElementById('api-key');
+        const resultsGrid = document.getElementById('results-grid');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageInfo = document.getElementById('page-info');
+        const totalCountEl = document.getElementById('total-count');
+
+        const PAGE_SIZE = 12;
+        let currentPage = 0;
+        let totalBreeds = 0;
+
+        async function loadBreeds(page = 0) {
+            resultsGrid.innerHTML = '<div class="no-results">Loading breeds...</div>';
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+
+            const apiKey = apiKeyInput.value.trim();
+            const headers = {};
+            if (apiKey) headers['x-api-key'] = apiKey;
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/breeds?limit=${PAGE_SIZE}&page=${page}`,
+                    { headers }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch breeds');
+
+                // Get total count from pagination headers
+                const paginationCount = response.headers.get('pagination-count');
+                if (paginationCount) {
+                    totalBreeds = parseInt(paginationCount, 10);
+                }
+
+                const breeds = await response.json();
+
+                if (breeds.length === 0) {
+                    resultsGrid.innerHTML = '<div class="no-results">No breeds found.</div>';
+                    return;
+                }
+
+                currentPage = page;
+                renderBreeds(breeds);
+                updatePagination();
+
+            } catch (error) {
+                console.error(error);
+                resultsGrid.innerHTML = `<div class="no-results" style="color: #ff6b6b;">Error: ${error.message}</div>`;
+            }
+        }
+
+        function renderBreeds(breeds) {
+            resultsGrid.innerHTML = '';
+
+            breeds.forEach(breed => {
+                const card = document.createElement('div');
+                card.className = 'breed-card';
+
+                let imageHtml = '';
+                // Prefer the image object URL if present, otherwise fallback to CDN URL
+                if (breed.image && breed.image.url) {
+                    imageHtml = `
+                        <div class="breed-img-container">
+                            <img class="breed-img" src="${breed.image.url}" alt="${breed.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+                        </div>
+                    `;
+                } else if (breed.reference_image_id) {
+                    const imageUrl = `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`;
+                    imageHtml = `
+                        <div class="breed-img-container">
+                            <img class="breed-img" src="${imageUrl}" alt="${breed.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+                        </div>
+                    `;
+                } else {
+                    imageHtml = `
+                        <div class="breed-img-container" style="display:flex;align-items:center;justify-content:center;color:#555;">
+                            No Image
+                        </div>
+                    `;
+                }
+
+                // Build stats conditionally
+                let statsHtml = '';
+                if (breed.breed_group) {
+                    statsHtml += `<div class="breed-stat"><strong>Group:</strong> ${breed.breed_group}</div>`;
+                }
+                if (breed.life_span) {
+                    statsHtml += `<div class="breed-stat"><strong>Life Span:</strong> ${breed.life_span}</div>`;
+                }
+                if (breed.temperament) {
+                    const tempShort = breed.temperament.split(', ').slice(0, 2).join(', ');
+                    statsHtml += `<div class="breed-stat"><strong>Temperament:</strong> ${tempShort}${breed.temperament.split(',').length > 2 ? '...' : ''}</div>`;
+                }
+
+                card.innerHTML = `
+                    ${imageHtml}
+                    <div class="breed-details">
+                        <div class="breed-name">${breed.name}</div>
+                        ${statsHtml}
+                    </div>
+                `;
+                resultsGrid.appendChild(card);
+            });
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(totalBreeds / PAGE_SIZE);
+            pageInfo.textContent = `Page ${currentPage + 1}${totalPages ? ` of ${totalPages}` : ''}`;
+
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = totalPages > 0 && currentPage >= totalPages - 1;
+
+            if (totalBreeds > 0) {
+                const start = currentPage * PAGE_SIZE + 1;
+                const end = Math.min((currentPage + 1) * PAGE_SIZE, totalBreeds);
+                totalCountEl.textContent = `Showing ${start}-${end} of ${totalBreeds} breeds`;
+            } else {
+                totalCountEl.textContent = '';
+            }
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 0) {
+                loadBreeds(currentPage - 1);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            loadBreeds(currentPage + 1);
+        });
+
+        // Reload when API key changes
+        apiKeyInput.addEventListener('change', () => {
+            currentPage = 0;
+            loadBreeds(0);
+        });
+
+        // Initial load
+        loadBreeds(0);
+    </script>
+</body>
+
+</html>
+</CodeContent>
+<parameter name="EmptyFile">false

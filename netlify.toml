@@ -41,3 +41,8 @@
   from = "/voting"
   to = "/voting/index.html"
   status = 200
+
+[[redirects]]
+  from = "/breeds-list"
+  to = "/breeds-list/index.html"
+  status = 200
