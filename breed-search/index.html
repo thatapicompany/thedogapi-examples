@@ -202,29 +202,20 @@
 
                 resultsGrid.innerHTML = ''; // Clear loading/previous
 
-                // For each breed, render a card. 
-                // Note: The search endpoint returns breed info, it might contain reference_image_id.
-                // It does NOT always contain the full image object URL. We might need to construct it or fetch it?
-                // Actually `reference_image_id` is usually enough to get the image: https://cdn2.thedogapi.com/images/${id}.jpg`
-                // BUT extensions vary (.jpg, .png).
-                // Safest is to use the image object if provided, OR just try .jpg and hope, OR separate call.
-                // Let's see what the API returns usually. Usually just reference_image_id.
-                // Optimization: The CDN is usually https://cdn2.thedogapi.com/images/{reference_image_id}.jpg 
-                // (Most are JPG, but not all. If we want to be perfect, we'd GET /images/:id for each... but that's n+1 requests).
-                // Let's try to just render the card without image first, or try to load the image.
-
-                // Wait, some breeds might not have an image reference.
-
                 breeds.forEach(breed => {
                     const card = document.createElement('div');
                     card.className = 'breed-card';
 
                     let imageHtml = '';
-                    if (breed.reference_image_id) {
-                        // Attempt to deduce URL or use a placeholder that errors gracefully?
-                        // Actually, standard is using the CDN directly is risky on extensions.
-                        // However, for this demo we can try `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`
-                        // and add onerror handler.
+                    // Prefer the image object URL if present, otherwise fallback to CDN URL
+                    if (breed.image && breed.image.url) {
+                        imageHtml = `
+                            <div class="breed-img-container">
+                                <img class="breed-img" src="${breed.image.url}" alt="${breed.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+                            </div>
+                        `;
+                    } else if (breed.reference_image_id) {
+                        // Fallback: construct CDN URL from reference_image_id
                         const imageUrl = `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`;
                         imageHtml = `
                             <div class="breed-img-container">
