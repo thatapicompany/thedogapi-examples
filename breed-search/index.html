@@ -137,6 +137,36 @@
             border-radius: var(--border-radius);
             color: #888;
         }
+
+        .demo-warning {
+            background-color: rgba(241, 90, 41, 0.15);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .demo-warning.visible {
+            display: flex;
+        }
+
+        .demo-warning-icon {
+            font-size: 1.2em;
+        }
+
+        .demo-warning-text {
+            flex: 1;
+            font-size: 0.9em;
+            color: #ffaa80;
+        }
+
+        .demo-warning-link {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -146,6 +176,15 @@
         <h1>Dog Breed Search</h1>
         <p style="text-align: center; color: #888; font-size: 0.9em; margin-bottom: 20px; font-family: monospace;">GET
             https://api.thedogapi.com/v1/breeds/search</p>
+
+        <div class="demo-warning" id="demo-warning">
+            <span class="demo-warning-icon">⚠️</span>
+            <span class="demo-warning-text">
+                You're using the DEMO API key. Only a sample of breeds is available.
+                <a href="https://thedogapi.com" target="_blank" class="demo-warning-link">Get a free API key</a> for
+                more breeds, or upgrade to the Starter plan for all breeds.
+            </span>
+        </div>
 
         <div class="search-box">
             <div class="form-group">
@@ -165,6 +204,20 @@
         const searchInput = document.getElementById('search-input');
         const apiKeyInput = document.getElementById('api-key');
         const searchBtn = document.getElementById('search-btn');
+        const demoWarning = document.getElementById('demo-warning');
+
+        function updateDemoWarning() {
+            const apiKey = apiKeyInput.value.trim();
+            if (apiKey === 'DEMO-API-KEY' || apiKey === '') {
+                demoWarning.classList.add('visible');
+            } else {
+                demoWarning.classList.remove('visible');
+            }
+        }
+
+        // Check on load and on input change
+        updateDemoWarning();
+        apiKeyInput.addEventListener('input', updateDemoWarning);
         const resultsGrid = document.getElementById('results-grid');
 
         // Allow 'Enter' key to trigger search
