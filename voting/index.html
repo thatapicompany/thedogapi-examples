@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dog API - Voting</title>
+    <title>{{title}} - Voting</title>
+    <script src="../species.js"></script>
     <style>
         :root {
             --primary-color: #f15a29;
@@ -136,9 +137,9 @@
 <body>
 
     <div class="container">
-        <h1>Vote on Dogs</h1>
+        <h1>Vote on {{Animals}}</h1>
         <p style="color: #888; font-size: 0.9em; margin-bottom: 20px; font-family: monospace;">POST
-            https://api.thedogapi.com/v1/votes</p>
+            {{apiBase}}/votes</p>
 
         <div class="api-input">
             <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="Your API Key">
@@ -146,7 +147,7 @@
 
         <div class="img-container">
             <div id="loading" style="color: #666;">Loading...</div>
-            <img id="current-image" alt="Random Dog">
+            <img id="current-image" alt="Random {{Animal}}">
         </div>
 
         <div class="actions">
@@ -158,7 +159,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://api.thedogapi.com/v1';
+        const API_URL = SPECIES.apiBase;
         const apiKeyInput = document.getElementById('api-key');
         const imgElement = document.getElementById('current-image');
         const loadingElement = document.getElementById('loading');

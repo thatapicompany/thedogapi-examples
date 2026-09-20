@@ -1,8 +1,14 @@
-# The Dog API Examples
+# The Dog API / The Cat API Examples
 
-This repository contains "micro-app" examples demonstrating how to use [The Dog API](https://thedogapi.com).
+This repository contains "micro-app" examples demonstrating how to use [The Dog API](https://thedogapi.com) and [The Cat API](https://thecatapi.com). Both run on the same platform, so one copy of each example serves both brands.
 
 Each example is a standalone HTML/JS application designed to be simple, embeddable (e.g., via iframe), and easy to understand.
+
+## One codebase, two sites
+
+The same static site is deployed to `examples.thedogapi.com` and `examples.thecatapi.com`. `species.js` (loaded by every page) picks the brand from the hostname, or from `?species=cat` / `?species=dog` when testing locally, and exposes `window.SPECIES` with the API base URL, upload host, CDN and wording. Pages use `SPECIES.apiBase` in code and `{{Animal}}`-style tokens in their HTML text, which `species.js` fills in on load.
+
+To preview the cat version locally, open any example with `?species=cat` appended to the URL.
 
 ## Examples
 

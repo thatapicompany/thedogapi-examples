@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dog API - Sync Image Upload</title>
+    <title>{{title}} - Sync Image Upload</title>
+    <script src="../species.js"></script>
     <style>
         :root {
             --primary-color: #f15a29;
@@ -164,7 +165,7 @@
 <body>
 
     <div class="container">
-        <h1>TheDogAPI Breed Identifier</h1>
+        <h1>{{brand}} Breed Identifier</h1>
         <p class="subtitle" style="font-family: monospace;">POST https://upload.thedogapi.com/v1/images/upload-sync</p>
 
         <div class="form-group">
@@ -182,7 +183,7 @@
         <div id="status-message"></div>
 
         <div id="result-area">
-            <img id="uploaded-image" src="" alt="Uploaded Dog">
+            <img id="uploaded-image" src="" alt="Uploaded {{Animal}}">
             <div id="breed-data" class="breed-info"></div>
             <details>
                 <summary style="cursor: pointer; color: #888; margin-top: 10px;">View Raw JSON</summary>
@@ -192,7 +193,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://upload.thedogapi.com/v1';
+        const API_URL = SPECIES.uploadBase;
         const statusMessage = document.getElementById('status-message');
         const resultArea = document.getElementById('result-area');
         const uploadBtn = document.getElementById('upload-btn');
