@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dog API - Image Upload Example</title>
+    <title>{{title}} - Image Upload Example</title>
+    <script src="../species.js"></script>
     <!-- Use a simple CSS framework for better aesthetics, or custom CSS -->
     <style>
         :root {
             --primary-color: #f15a29;
-            /* The Dog API Orange */
+            /* Brand orange (shared by both example sites) */
             --bg-color: #1a1a1a;
             --text-color: #ffffff;
             --secondary-bg: #2d2d2d;
@@ -135,16 +136,16 @@
 <body>
 
     <div class="container">
-        <h1>TheDogAPI Breed Identifier</h1>
+        <h1>{{brand}} Breed Identifier</h1>
         <p style="text-align: center; color: #aaa; margin-bottom: 25px; font-family: monospace;">POST
-            https://api.thedogapi.com/v1/images/upload</p>
+            {{apiBase}}/images/upload</p>
 
         <div class="form-group">
             <label for="api-key">API Key</label>
             <input type="text" id="api-key" value="DEMO-API-KEY" placeholder="Enter your API Key">
             <small style="color: #888; display: block; margin-top: 5px;">Get one for free at <a
-                    href="https://thedogapi.com" target="_blank"
-                    style="color: var(--primary-color);">thedogapi.com</a></small>
+                    href="{{siteUrl}}" target="_blank"
+                    style="color: var(--primary-color);">{{domain}}</a></small>
         </div>
 
         <div class="form-group">
@@ -157,13 +158,13 @@
         <div id="status-log"></div>
 
         <div id="result-area">
-            <img id="uploaded-image" src="" alt="Uploaded Dog">
+            <img id="uploaded-image" src="" alt="Uploaded {{Animal}}">
             <div id="breed-data" class="breed-info"></div>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://api.thedogapi.com/v1';
+        const API_URL = SPECIES.apiBase;
         const statusLog = document.getElementById('status-log');
         const resultArea = document.getElementById('result-area');
         const uploadBtn = document.getElementById('upload-btn');
@@ -274,7 +275,7 @@
                 } else {
                     breedData.innerHTML = `
                         <div class="breed-title">I'm not sure what breed that is 🤔</div>
-                        <div>But it looks like a good dog!</div>
+                        <div>But it looks like a good {{animal}}!</div>
                     `;
                     addLog('Analysis finished, but no specific breed identified.');
                 }
