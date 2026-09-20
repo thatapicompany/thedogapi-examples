@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dog API - All Breeds</title>
+    <title>{{title}} - All Breeds</title>
+    <script src="../species.js"></script>
     <style>
         :root {
             --primary-color: #f15a29;
@@ -219,14 +220,14 @@
 <body>
 
     <div class="container">
-        <h1>All Dog Breeds</h1>
+        <h1>All {{Animal}} Breeds</h1>
         <p class="subtitle">GET https://api.thedogapi.com/v1/breeds</p>
 
         <div class="demo-warning" id="demo-warning">
             <span class="demo-warning-icon">⚠️</span>
             <span class="demo-warning-text">
                 You're using the DEMO API key. Only a sample of breeds is available.
-                <a href="https://thedogapi.com" target="_blank" class="demo-warning-link">Get a free API key</a> for
+                <a href="{{siteUrl}}" target="_blank" class="demo-warning-link">Get a free API key</a> for
                 more breeds, or upgrade to the Starter plan for all breeds.
             </span>
         </div>
@@ -248,7 +249,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://api.thedogapi.com/v1';
+        const API_URL = SPECIES.apiBase;
         const apiKeyInput = document.getElementById('api-key');
         const resultsGrid = document.getElementById('results-grid');
         const prevBtn = document.getElementById('prev-btn');
@@ -330,7 +331,7 @@
                         </div>
                     `;
                 } else if (breed.reference_image_id) {
-                    const imageUrl = `https://cdn2.thedogapi.com/images/${breed.reference_image_id}.jpg`;
+                    const imageUrl = `${SPECIES.cdn}/images/${breed.reference_image_id}.jpg`;
                     imageHtml = `
                         <div class="breed-img-container">
                             <img class="breed-img" src="${imageUrl}" alt="${breed.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">

@@ -1,6 +1,6 @@
 # Deploying to Netlify
 
-This project is deployed to Netlify and accessible at `examples.thedogapi.com`.
+This project is deployed to Netlify and accessible at `examples.thedogapi.com` and `examples.thecatapi.com`. Both domains point at the same Netlify site; `species.js` switches the brand by hostname, so there is nothing species-specific to configure in Netlify beyond adding the second domain alias.
 
 ## Initial Deployment
 
